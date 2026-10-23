@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="SauceDemo" parallel="classes" thread-count="3">
+  <test name="Regression">
+    <packages>
+      <package name="com.kayla.qa.tests"/>
+    </packages>
+  </test>
+</suite>
