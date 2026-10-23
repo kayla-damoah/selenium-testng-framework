@@ -31,6 +31,9 @@ public class CartPage extends BasePage {
         type(LAST_NAME, last);
         type(ZIP, zip);
         click(CONTINUE);
+        // Wait for the overview step so a failure here names the real problem (form rejected?)
+        // instead of surfacing later as "Finish button not clickable".
+        urlContains("checkout-step-two");
         click(FINISH);
     }
 

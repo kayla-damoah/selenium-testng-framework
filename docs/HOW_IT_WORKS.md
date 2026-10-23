@@ -92,3 +92,19 @@ The test reads like a story. It never mentions a CSS selector, because those are
 - *What would you add next?* Reporting (Allure), cross-browser runs on Selenium Grid, and API calls to set up test data faster.
 
 Describe this as a personal project you built to learn Selenium and TestNG, which is accurate.
+
+## 8. A real bug we hit: the race condition
+
+The first CI run passed 9 of 12 tests. Three failed:
+
+| Symptom | Cause |
+|---|---|
+| Cart badge read `1`, expected `2` | The test read the badge before the page had updated it |
+| Clicking the cart icon never left the inventory page | The click landed while the header was re-rendering after "Add to cart" |
+| "Finish" button never became clickable | Not yet diagnosed; added a wait on the overview step to expose the real cause |
+
+**Root cause:** the test moved on before the page finished reacting to the previous click (a *race condition*). Browser tests are asynchronous: a click returns immediately, but the page updates a moment later.
+
+**Fix:** after each action, wait for something that proves it finished. `addToCart` now waits for the button to change to "Remove". That is better than a sleep, because it waits exactly as long as needed.
+
+**Lesson:** "wait for the result of the action, not for time to pass." This is the answer to "how do you deal with flaky tests?"

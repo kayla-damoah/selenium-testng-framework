@@ -31,12 +31,19 @@ public class InventoryPage extends BasePage {
         return driver.findElements(ITEMS).size();
     }
 
+    /**
+     * Clicks "Add to cart", then waits for the button to flip to "Remove". That flip is the page
+     * telling us it finished updating; without the wait, the next step can race the re-render.
+     */
     public void addToCart(String slug) {
         click(By.cssSelector("[data-test='add-to-cart-" + slug + "']"));
+        visible(By.cssSelector("[data-test='remove-" + slug + "']"));
     }
 
+    /** Mirror of addToCart: waits for the button to flip back to "Add to cart". */
     public void removeFromCart(String slug) {
         click(By.cssSelector("[data-test='remove-" + slug + "']"));
+        visible(By.cssSelector("[data-test='add-to-cart-" + slug + "']"));
     }
 
     public int cartCount() {
