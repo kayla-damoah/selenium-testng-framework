@@ -12,7 +12,8 @@ New to the project? Start with [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md), a p
 
 - **Page Object Model**: selectors and page behavior live in `pages/`, tests only describe intent.
 - **Explicit waits only**: `BasePage` wraps `WebDriverWait`; there is no `Thread.sleep`.
-- **Parallel-safe**: a `ThreadLocal<WebDriver>` gives each test its own browser, and `testng.xml` runs classes in parallel.
+- **Parallel-ready**: a `ThreadLocal<WebDriver>` gives each test its own browser. CI runs one at a time (`thread-count=1` in `testng.xml`) because parallel browsers on a small runner caused dropped clicks; raise it where there's more CPU.
+- **Actions verify their own result**: `clickUntil` and `type` in `BasePage` check that a click or keystroke took effect and retry, because the demo site occasionally drops them (see `docs/HOW_IT_WORKS.md`, section 8).
 - **Data-driven tests**: TestNG `@DataProvider` for invalid-login cases.
 - **Screenshot on failure**, uploaded as a CI artifact.
 - **Config via system properties**: `-Dbrowser=chrome|firefox`, `-Dheadless=true|false`.
@@ -24,7 +25,7 @@ Needs JDK 17+, Maven, and Chrome (Selenium Manager downloads the driver itself).
 ```bash
 mvn test                              # headless Chrome, full suite
 mvn test -Dheadless=false             # watch it run
-mvn test -Dbrowser=firefox
+mvn test -Dbrowser=firefox            # supported in DriverFactory but not yet run in CI
 mvn test -Dgroups=smoke               # smoke subset only
 ```
 

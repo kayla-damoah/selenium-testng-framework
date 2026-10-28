@@ -23,7 +23,7 @@ A person testing a shop website would open a browser, log in, add something to t
 
 ```
 pom.xml                  Shopping list: Java version, Selenium, TestNG, how to run tests
-testng.xml               Which tests to run, and to run 3 classes at once (parallel)
+testng.xml               Which tests to run (one at a time for now; parallel is a setting)
 .github/workflows/ci.yml The robot's instructions for GitHub
 src/test/java/com/kayla/qa/
   base/DriverFactory     Opens Chrome or Firefox (headless or visible)
