@@ -93,23 +93,20 @@ The test reads like a story. It never mentions a CSS selector, because those are
 
 Describe this as a personal project you built to learn Selenium and TestNG, which is accurate.
 
-## 8. A real bug we hit: clicks the page ignores
+## 8. A real debugging story: actions the page silently drops
 
-The first CI run passed 9 of 12 tests. All 3 failures had the same shape: a click that came right after "Add to cart" did nothing.
+The first CI run passed 9 of 12 tests. Getting to green took several rounds, each driven by evidence from CI (the log plus the failure screenshots uploaded as an artifact).
 
-| Test | Symptom |
-|---|---|
-| `cartBadgeTracksAddsAndRemoves` | Second "Add to cart" never flipped to "Remove"; badge stayed at 1 |
-| `cartShowsTheItemThatWasAdded` | Click on the cart icon never left the inventory page |
-| `endToEndCheckoutShowsConfirmation` | Same ignored cart-icon click, so no checkout button |
+| Round | What the evidence showed | What we changed | Result |
+|---|---|---|---|
+| 1 | Clicks right after "Add to cart" did nothing; Selenium raised no error | Wait for the button to flip to "Remove" | Still failing |
+| 2 | Screenshots: healthy page, nothing covering it; the click was just lost | `clickUntil`: click, verify the effect, retry | Still failing |
+| 3 | Three browsers at once on a small CI machine | Run tests one at a time | 10 of 12 pass |
+| 4 | A few clicks still lost, even on retry | Retries use a JavaScript click as a fallback | 11 of 12 pass |
+| 5 | Screenshot: "First Name is required" with empty fields; typed text had vanished | `type` verifies the text landed; checkout retries fill + Continue together | (pending) |
 
-**How it was diagnosed**
-1. The CI log named the failing line and the wait that timed out.
-2. The failure screenshots (uploaded as a CI artifact) showed a healthy page with nothing covering it, so it wasn't a popup. The first click had worked, and the next one was ignored.
-3. Selenium raised no error, because from its point of view the click happened. The page just didn't react.
+**The pattern:** the site sometimes drops actions made while the page is redrawing, and Selenium cannot see that. So every step must **verify its result**, not just perform the action.
 
-**Fix:** `BasePage.clickUntil(...)` clicks, then checks that the expected effect happened (button flipped, URL changed), and clicks again if not. The test checks the outcome rather than assuming the click worked.
+**Honest caveat:** I never confirmed *why* the site behaves this way. Retries and verification are a sound defence for a third-party UI you don't control. For your own application, you would find and fix the root cause instead of working around it.
 
-**Honest caveat:** the cause on the website's side is not confirmed (likely a short window where it ignores clicks after the cart updates). A retry is a reasonable guard for a third-party UI you don't control, but for your own application you would find and fix the real cause rather than retry around it.
-
-**Lesson:** "verify the result of an action, not just that the action ran." This is a good answer to "how do you handle flaky tests?"
+**Interview answer:** "A third-party demo site dropped clicks and keystrokes intermittently. I used the CI logs and failure screenshots to narrow it down, ran the suite serially, and made each page action verify its own result instead of assuming it worked."

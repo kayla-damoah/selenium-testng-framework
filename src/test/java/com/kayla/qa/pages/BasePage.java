@@ -3,6 +3,7 @@ package com.kayla.qa.pages;
 import java.time.Duration;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -54,10 +55,19 @@ abstract class BasePage {
         }
     }
 
+    /** Types into a field and checks the text really landed; the page can redraw and drop keystrokes. */
     protected void type(By locator, String text) {
-        WebElement field = visible(locator);
-        field.clear();
-        field.sendKeys(text);
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                WebElement field = visible(locator);
+                field.clear();
+                field.sendKeys(text);
+                if (text.equals(field.getAttribute("value"))) return;
+            } catch (StaleElementReferenceException e) {
+                // The field was replaced mid-typing; look it up again and retry.
+            }
+        }
+        throw new IllegalStateException("Could not type '" + text + "' into " + locator);
     }
 
     protected boolean urlContains(String fragment) {

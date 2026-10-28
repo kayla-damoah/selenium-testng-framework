@@ -2,6 +2,7 @@ package com.kayla.qa.pages;
 
 import java.util.List;
 import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
@@ -28,10 +29,19 @@ public class CartPage extends BasePage {
 
     public void checkout(String first, String last, String zip) {
         clickUntil(CHECKOUT, ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
-        type(FIRST_NAME, first);
-        type(LAST_NAME, last);
-        type(ZIP, zip);
-        clickUntil(CONTINUE, ExpectedConditions.urlContains("checkout-step-two"));
+        // The form can be reset by a page redraw after we fill it, which makes Continue show
+        // "First Name is required". So fill and submit together, and redo both if it is rejected.
+        for (int attempt = 1; ; attempt++) {
+            type(FIRST_NAME, first);
+            type(LAST_NAME, last);
+            type(ZIP, zip);
+            try {
+                clickUntil(CONTINUE, ExpectedConditions.urlContains("checkout-step-two"));
+                break;
+            } catch (TimeoutException e) {
+                if (attempt == 3) throw e;
+            }
+        }
         clickUntil(FINISH, ExpectedConditions.visibilityOfElementLocated(CONFIRMATION));
     }
 
