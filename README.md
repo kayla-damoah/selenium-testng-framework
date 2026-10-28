@@ -6,7 +6,9 @@ UI test automation in Java 17 with Selenium 4, TestNG and Maven, run in GitHub A
 
 Target: [Sauce Demo](https://www.saucedemo.com), a public practice shop.
 
-New to the project? Start with [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md), a plain-English walkthrough.
+**[Live test report](https://kayla-damoah.github.io/selenium-testng-framework/)** (Allure, rebuilt on every push to `main`)
+
+For the design in more detail, see [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md).
 
 ## How it fits together
 
@@ -48,7 +50,7 @@ mvn test -Dbrowser=firefox            # supported in DriverFactory but not yet r
 mvn test -Dgroups=smoke               # smoke subset only
 ```
 
-Reports: `target/surefire-reports/`. Failure screenshots: `screenshots/`.
+Reports: `target/surefire-reports/`. Failure screenshots: `screenshots/`. The latest CI run's Allure report is linked at the top.
 
 ## Layout
 
