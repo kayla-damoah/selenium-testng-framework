@@ -20,6 +20,19 @@ jobs:
           cache: maven
       - name: Run tests (headless Chrome)
         run: mvn -B test
+      - name: Add environment info to the report
+        if: always()
+        run: |
+          mkdir -p target/allure-results
+          {
+            echo "Browser=$(google-chrome --version)"
+            echo "Mode=headless"
+            echo "Java=$(java -version 2>&1 | head -1)"
+            echo "OS=$(. /etc/os-release && echo "$PRETTY_NAME")"
+            echo "Target=https://www.saucedemo.com"
+            echo "Run=${{ github.run_number }}"
+            echo "Commit=${GITHUB_SHA::7}"
+          } > target/allure-results/environment.properties
       - name: Build Allure report
         if: always()
         run: mvn -B allure:report
