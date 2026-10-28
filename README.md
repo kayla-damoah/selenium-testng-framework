@@ -8,6 +8,24 @@ Target: [Sauce Demo](https://www.saucedemo.com), a public practice shop.
 
 New to the project? Start with [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md), a plain-English walkthrough.
 
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph CI["GitHub Actions (every push)"]
+        M["mvn test"] --> T["TestNG<br/>runs testng.xml"]
+    end
+    T --> TC["Test classes<br/>LoginTests, InventoryTests, CheckoutTests"]
+    TC -- "extends" --> BT["BaseTest<br/>browser per test,<br/>screenshot on failure"]
+    BT --> DF["DriverFactory<br/>Chrome or Firefox,<br/>headless or visible"]
+    TC -- "uses" --> PO["Page objects<br/>LoginPage, InventoryPage, CartPage"]
+    PO -- "extends" --> BP["BasePage<br/>waits, clickUntil, type"]
+    BP --> S["Selenium WebDriver"]
+    DF --> S
+    S --> B["Chrome"] --> W["saucedemo.com"]
+    BT -. "on failure" .-> SS["screenshots/ artifact"]
+```
+
 ## What it demonstrates
 
 - **Page Object Model**: selectors and page behavior live in `pages/`, tests only describe intent.
