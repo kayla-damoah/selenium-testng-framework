@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "0 12 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,10 +20,35 @@ jobs:
           cache: maven
       - name: Run tests (headless Chrome)
         run: mvn -B test
+      - name: Build Allure report
+        if: always()
+        run: mvn -B allure:report
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: reports
           path: |
             target/surefire-reports/
+            target/allure-results/
             screenshots/
+      - uses: actions/upload-pages-artifact@v3
+        if: always() && github.ref == 'refs/heads/main'
+        with:
+          path: target/site/allure-maven-plugin
+
+  # Publishes the report at https://<user>.github.io/<repo>/. Needs Settings > Pages > Source: GitHub Actions.
+  # continue-on-error keeps a Pages problem from turning the whole run red.
+  publish-report:
+    needs: test
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

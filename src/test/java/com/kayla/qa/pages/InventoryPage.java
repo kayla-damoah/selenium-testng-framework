@@ -1,5 +1,7 @@
 package com.kayla.qa.pages;
 
+import io.qameta.allure.Step;
+
 import java.util.List;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -36,12 +38,14 @@ public class InventoryPage extends BasePage {
      * Clicks "Add to cart" and confirms the button flipped to "Remove". That flip is the page
      * telling us it finished updating; clickUntil retries if the click was ignored.
      */
+    @Step("Add {0} to the cart")
     public void addToCart(String slug) {
         clickUntil(By.cssSelector("[data-test='add-to-cart-" + slug + "']"),
                 ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test='remove-" + slug + "']")));
     }
 
     /** Mirror of addToCart: confirms the button flipped back to "Add to cart". */
+    @Step("Remove {0} from the cart")
     public void removeFromCart(String slug) {
         clickUntil(By.cssSelector("[data-test='remove-" + slug + "']"),
                 ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test='add-to-cart-" + slug + "']")));
@@ -52,6 +56,7 @@ public class InventoryPage extends BasePage {
         return badge.isEmpty() ? 0 : Integer.parseInt(badge.get(0).getText());
     }
 
+    @Step("Sort products by {0}")
     public void sortBy(String value) {
         new Select(visible(SORT)).selectByValue(value);
     }
@@ -63,6 +68,7 @@ public class InventoryPage extends BasePage {
                 .toList();
     }
 
+    @Step("Open the cart")
     public CartPage openCart() {
         clickUntil(CART_LINK, ExpectedConditions.urlContains("cart.html"));
         return new CartPage(driver);

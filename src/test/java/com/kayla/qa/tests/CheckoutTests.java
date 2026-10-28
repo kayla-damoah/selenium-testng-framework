@@ -1,5 +1,7 @@
 package com.kayla.qa.tests;
 
+import io.qameta.allure.Feature;
+
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -10,6 +12,7 @@ import com.kayla.qa.pages.LoginPage;
 import org.testng.annotations.Test;
 
 /** Checks the cart contents and a complete purchase from start to finish. */
+@Feature("Checkout")
 public class CheckoutTests extends BaseTest {
 
     @Test

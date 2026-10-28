@@ -1,5 +1,7 @@
 package com.kayla.qa.pages;
 
+import io.qameta.allure.Step;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -19,11 +21,13 @@ public class LoginPage extends BasePage {
         super(driver);
     }
 
+    @Step("Open the login page")
     public LoginPage open() {
         driver.get(URL);
         return this;
     }
 
+    @Step("Log in as {0}")
     public void login(String user, String password) {
         type(USERNAME, user);
         type(PASSWORD, password);

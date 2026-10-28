@@ -1,5 +1,7 @@
 package com.kayla.qa.tests;
 
+import io.qameta.allure.Feature;
+
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -9,6 +11,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /** Checks that the right people get in and the wrong ones get a clear error. */
+@Feature("Login")
 public class LoginTests extends BaseTest {
 
     @Test(groups = "smoke")

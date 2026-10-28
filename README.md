@@ -33,6 +33,7 @@ flowchart LR
 - **Parallel-ready**: a `ThreadLocal<WebDriver>` gives each test its own browser. CI runs one at a time (`thread-count=1` in `testng.xml`) because parallel browsers on a small runner caused dropped clicks; raise it where there's more CPU.
 - **Actions verify their own result**: `clickUntil` and `type` in `BasePage` check that a click or keystroke took effect and retry, because the demo site occasionally drops them (see `docs/HOW_IT_WORKS.md`, section 8).
 - **Data-driven tests**: TestNG `@DataProvider` for invalid-login cases.
+- **Allure report**: every run builds a clickable report (steps, grouping by feature, failure screenshots attached) published to GitHub Pages.
 - **Screenshot on failure**, uploaded as a CI artifact.
 - **Config via system properties**: `-Dbrowser=chrome|firefox`, `-Dheadless=true|false`.
 
@@ -61,7 +62,6 @@ testng.xml
 
 ## Ideas to extend
 
-- Allure or ExtentReports HTML reporting
 - Selenium Grid / Docker for cross-browser runs
 - A retry analyzer with flaky-test reporting
 - API setup of test state to speed up UI tests

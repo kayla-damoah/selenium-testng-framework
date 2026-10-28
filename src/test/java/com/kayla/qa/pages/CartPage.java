@@ -1,5 +1,7 @@
 package com.kayla.qa.pages;
 
+import io.qameta.allure.Step;
+
 import java.util.List;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
@@ -27,6 +29,7 @@ public class CartPage extends BasePage {
         return driver.findElements(ITEM_NAMES).stream().map(e -> e.getText()).toList();
     }
 
+    @Step("Check out as {0} {1}")
     public void checkout(String first, String last, String zip) {
         clickUntil(CHECKOUT, ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
         // The form can be reset by a page redraw after we fill it, which makes Continue show

@@ -1,5 +1,8 @@
 package com.kayla.qa.base;
 
+import io.qameta.allure.Allure;
+import java.io.ByteArrayInputStream;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,11 +36,18 @@ public abstract class BaseTest {
         try {
             if (result.getStatus() == ITestResult.FAILURE) {
                 saveScreenshot(driver, result.getMethod().getMethodName());
+                attachScreenshot(driver);
             }
         } finally {
             driver.quit();
             DRIVER.remove();
         }
+    }
+
+    /** Adds the screenshot to the Allure report so it shows up on the failed test's page. */
+    private void attachScreenshot(WebDriver driver) {
+        byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+        Allure.addAttachment("Screenshot on failure", "image/png", new ByteArrayInputStream(png), "png");
     }
 
     private void saveScreenshot(WebDriver driver, String name) {

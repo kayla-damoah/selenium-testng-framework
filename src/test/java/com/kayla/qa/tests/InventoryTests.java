@@ -1,5 +1,7 @@
 package com.kayla.qa.tests;
 
+import io.qameta.allure.Feature;
+
 import static org.testng.Assert.assertEquals;
 
 import com.kayla.qa.base.BaseTest;
@@ -11,6 +13,7 @@ import java.util.List;
 import org.testng.annotations.Test;
 
 /** Checks the product list: how many items, cart count, and price sorting. */
+@Feature("Inventory")
 public class InventoryTests extends BaseTest {
 
     private InventoryPage loggedIn() {
