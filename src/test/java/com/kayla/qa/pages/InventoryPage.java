@@ -4,6 +4,7 @@ import java.util.List;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 
 /**
@@ -32,18 +33,18 @@ public class InventoryPage extends BasePage {
     }
 
     /**
-     * Clicks "Add to cart", then waits for the button to flip to "Remove". That flip is the page
-     * telling us it finished updating; without the wait, the next step can race the re-render.
+     * Clicks "Add to cart" and confirms the button flipped to "Remove". That flip is the page
+     * telling us it finished updating; clickUntil retries if the click was ignored.
      */
     public void addToCart(String slug) {
-        click(By.cssSelector("[data-test='add-to-cart-" + slug + "']"));
-        visible(By.cssSelector("[data-test='remove-" + slug + "']"));
+        clickUntil(By.cssSelector("[data-test='add-to-cart-" + slug + "']"),
+                ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test='remove-" + slug + "']")));
     }
 
-    /** Mirror of addToCart: waits for the button to flip back to "Add to cart". */
+    /** Mirror of addToCart: confirms the button flipped back to "Add to cart". */
     public void removeFromCart(String slug) {
-        click(By.cssSelector("[data-test='remove-" + slug + "']"));
-        visible(By.cssSelector("[data-test='add-to-cart-" + slug + "']"));
+        clickUntil(By.cssSelector("[data-test='remove-" + slug + "']"),
+                ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test='add-to-cart-" + slug + "']")));
     }
 
     public int cartCount() {
@@ -63,7 +64,7 @@ public class InventoryPage extends BasePage {
     }
 
     public CartPage openCart() {
-        click(CART_LINK);
+        clickUntil(CART_LINK, ExpectedConditions.urlContains("cart.html"));
         return new CartPage(driver);
     }
 }

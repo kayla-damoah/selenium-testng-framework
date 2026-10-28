@@ -3,6 +3,7 @@ package com.kayla.qa.pages;
 import java.util.List;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 /** The cart and the checkout form. Ends on the order-confirmation message. */
 public class CartPage extends BasePage {
@@ -26,15 +27,12 @@ public class CartPage extends BasePage {
     }
 
     public void checkout(String first, String last, String zip) {
-        click(CHECKOUT);
+        clickUntil(CHECKOUT, ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
         type(FIRST_NAME, first);
         type(LAST_NAME, last);
         type(ZIP, zip);
-        click(CONTINUE);
-        // Wait for the overview step so a failure here names the real problem (form rejected?)
-        // instead of surfacing later as "Finish button not clickable".
-        urlContains("checkout-step-two");
-        click(FINISH);
+        clickUntil(CONTINUE, ExpectedConditions.urlContains("checkout-step-two"));
+        clickUntil(FINISH, ExpectedConditions.visibilityOfElementLocated(CONFIRMATION));
     }
 
     public String confirmationText() {

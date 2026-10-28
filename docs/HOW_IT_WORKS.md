@@ -93,18 +93,23 @@ The test reads like a story. It never mentions a CSS selector, because those are
 
 Describe this as a personal project you built to learn Selenium and TestNG, which is accurate.
 
-## 8. A real bug we hit: the race condition
+## 8. A real bug we hit: clicks the page ignores
 
-The first CI run passed 9 of 12 tests. Three failed:
+The first CI run passed 9 of 12 tests. All 3 failures had the same shape: a click that came right after "Add to cart" did nothing.
 
-| Symptom | Cause |
+| Test | Symptom |
 |---|---|
-| Cart badge read `1`, expected `2` | The test read the badge before the page had updated it |
-| Clicking the cart icon never left the inventory page | The click landed while the header was re-rendering after "Add to cart" |
-| "Finish" button never became clickable | Not yet diagnosed; added a wait on the overview step to expose the real cause |
+| `cartBadgeTracksAddsAndRemoves` | Second "Add to cart" never flipped to "Remove"; badge stayed at 1 |
+| `cartShowsTheItemThatWasAdded` | Click on the cart icon never left the inventory page |
+| `endToEndCheckoutShowsConfirmation` | Same ignored cart-icon click, so no checkout button |
 
-**Root cause:** the test moved on before the page finished reacting to the previous click (a *race condition*). Browser tests are asynchronous: a click returns immediately, but the page updates a moment later.
+**How it was diagnosed**
+1. The CI log named the failing line and the wait that timed out.
+2. The failure screenshots (uploaded as a CI artifact) showed a healthy page with nothing covering it, so it wasn't a popup. The first click had worked, and the next one was ignored.
+3. Selenium raised no error, because from its point of view the click happened. The page just didn't react.
 
-**Fix:** after each action, wait for something that proves it finished. `addToCart` now waits for the button to change to "Remove". That is better than a sleep, because it waits exactly as long as needed.
+**Fix:** `BasePage.clickUntil(...)` clicks, then checks that the expected effect happened (button flipped, URL changed), and clicks again if not. The test checks the outcome rather than assuming the click worked.
 
-**Lesson:** "wait for the result of the action, not for time to pass." This is the answer to "how do you deal with flaky tests?"
+**Honest caveat:** the cause on the website's side is not confirmed (likely a short window where it ignores clicks after the cart updates). A retry is a reasonable guard for a third-party UI you don't control, but for your own application you would find and fix the real cause rather than retry around it.
+
+**Lesson:** "verify the result of an action, not just that the action ran." This is a good answer to "how do you handle flaky tests?"
