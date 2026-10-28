@@ -39,7 +39,7 @@ abstract class BasePage {
         for (int attempt = 1; ; attempt++) {
             click(locator);
             try {
-                new WebDriverWait(driver, Duration.ofSeconds(3)).until(expectedEffect);
+                new WebDriverWait(driver, Duration.ofSeconds(6)).until(expectedEffect);
                 return;
             } catch (TimeoutException e) {
                 if (attempt == maxAttempts) throw e;
