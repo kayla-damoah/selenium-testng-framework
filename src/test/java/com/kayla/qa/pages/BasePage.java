@@ -55,19 +55,45 @@ abstract class BasePage {
         }
     }
 
-    /** Types into a field and checks the text really landed; the page can redraw and drop keystrokes. */
+    /**
+     * Types into a field and checks the text lands AND stays. This site sometimes drops keystrokes
+     * (or clears the form) while a page is still settling after a client-side navigation, so we
+     * give it several spaced-out attempts. The first two press real keys; later ones set the value
+     * through JavaScript and fire the "input" event so the page's own code notices the change.
+     */
     protected void type(By locator, String text) {
-        for (int attempt = 1; attempt <= 3; attempt++) {
+        for (int attempt = 1; attempt <= 5; attempt++) {
             try {
                 WebElement field = visible(locator);
                 field.clear();
-                field.sendKeys(text);
-                if (text.equals(field.getAttribute("value"))) return;
+                if (attempt <= 2) {
+                    field.sendKeys(text);
+                } else {
+                    ((JavascriptExecutor) driver).executeScript(
+                            "var setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;"
+                                    + "setter.call(arguments[0], arguments[1]);"
+                                    + "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));",
+                            field, text);
+                }
+                if (valueHolds(locator, text)) return;
             } catch (StaleElementReferenceException e) {
                 // The field was replaced mid-typing; look it up again and retry.
             }
         }
         throw new IllegalStateException("Could not type '" + text + "' into " + locator);
+    }
+
+    /** True if the field shows `text` and keeps showing it for about 750 ms. */
+    private boolean valueHolds(By locator, String text) {
+        try {
+            new WebDriverWait(driver, Duration.ofMillis(750))
+                    .pollingEvery(Duration.ofMillis(150))
+                    .ignoring(StaleElementReferenceException.class)
+                    .until(d -> !text.equals(d.findElement(locator).getAttribute("value")));
+            return false; // the value was missing or got wiped within the window
+        } catch (TimeoutException e) {
+            return true; // never wiped for the whole window
+        }
     }
 
     protected boolean urlContains(String fragment) {

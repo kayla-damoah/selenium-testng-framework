@@ -103,7 +103,8 @@ The first CI run passed 9 of 12 tests. Getting to green took several rounds, eac
 | 2 | Screenshots: healthy page, nothing covering it; the click was just lost | `clickUntil`: click, verify the effect, retry | Still failing |
 | 3 | Three browsers at once on a small CI machine | Run tests one at a time | 10 of 12 pass |
 | 4 | A few clicks still lost, even on retry | Retries use a JavaScript click as a fallback | 11 of 12 pass |
-| 5 | Screenshot: "First Name is required" with empty fields; typed text had vanished | `type` verifies the text landed; checkout retries fill + Continue together | (pending) |
+| 5 | Screenshot: "First Name is required" with empty fields; typed text had vanished | `type` verifies the text landed; checkout retries fill + Continue together | Still 11 of 12 |
+| 6 | Screenshot: field focused but empty after 3 rapid retries, so retries were all inside the same bad moment | Spaced-out attempts; text must survive 750 ms; later attempts set the value via JavaScript | (pending) |
 
 **The pattern:** the site sometimes drops actions made while the page is redrawing, and Selenium cannot see that. So every step must **verify its result**, not just perform the action.
 
