@@ -1,113 +1,97 @@
-# How this project works
+# How it works
 
-A plain-English walkthrough. Read it top to bottom once, then open the code with it beside you.
+This document covers the design of the test suite: how a run flows through the code, why it is structured this way, and what it took to make it stable on CI.
 
-## 1. The big idea
+## Overview
 
-A person testing a shop website would open a browser, log in, add something to the cart, check out, and look at what happened. This project does the same steps with code, so they can be repeated in seconds, on every change, with no one clicking.
+The suite drives a real browser through a public demo shop ([Sauce Demo](https://www.saucedemo.com)): logging in, browsing and sorting products, filling the cart and checking out. It runs headless on GitHub Actions for every push and publishes an [Allure report](https://kayla-damoah.github.io/selenium-testng-framework/).
 
-```
- You / GitHub  ->  Maven  ->  TestNG  ->  Test  ->  Page object  ->  Selenium  ->  Chrome  ->  Website
- (run tests)     (build)   (runs tests)  (what)    (where/how)     (remote control)
-```
+| Tool | Role |
+|---|---|
+| Selenium WebDriver | Controls the browser from Java |
+| TestNG | Discovers and runs tests; provides annotations, data providers and groups |
+| Maven | Builds the project, manages dependencies, runs the suite (`pom.xml`) |
+| Allure | Turns results into a browsable report with steps and failure screenshots |
+| GitHub Actions | Runs the suite and publishes the report on every push |
 
-| Piece | What it is | Everyday comparison |
-|---|---|---|
-| **Selenium** | A library that controls a real browser from code | A remote control for Chrome |
-| **TestNG** | A framework that finds, runs and reports on tests | A referee that runs each check and writes down pass/fail |
-| **Maven** | A build tool; downloads libraries and runs everything | The project's manager: `pom.xml` is its shopping list |
-| **Page Object Model** | One class per screen that holds its selectors and actions | A map of each screen |
-| **GitHub Actions** | Runs the tests on GitHub's computers on every push | A robot that re-runs your checks for you |
-
-## 2. A tour of the files
+## Layers
 
 ```
-pom.xml                  Shopping list: Java version, Selenium, TestNG, how to run tests
-testng.xml               Which tests to run (one at a time for now; parallel is a setting)
-.github/workflows/ci.yml The robot's instructions for GitHub
+Tests          what is being checked                 tests/
+Page objects   where things are, how to use them     pages/
+Base classes   browser lifecycle, waits, retries     base/, BasePage
+Selenium       browser control
+```
+
+Each layer only talks to the one below it. Tests never contain selectors, and page objects never contain assertions.
+
+## Project layout
+
+```
+pom.xml                    Dependencies, surefire config, Allure plugin
+testng.xml                 Which tests run, and the thread count
+.github/workflows/ci.yml   Run tests, build the report, publish to Pages
 src/test/java/com/kayla/qa/
-  base/DriverFactory     Opens Chrome or Firefox (headless or visible)
-  base/BaseTest          Before each test: open a browser. After: screenshot if failed, close it
-  pages/BasePage         Shared helpers: wait for an element, click, type
-  pages/LoginPage        The login screen
-  pages/InventoryPage    The product list
-  pages/CartPage         The cart and checkout
-  tests/LoginTests       Login checks
-  tests/InventoryTests   Product list checks
-  tests/CheckoutTests    Purchase checks
+  base/DriverFactory       Builds Chrome or Firefox (headless or visible)
+  base/BaseTest            Browser per test; screenshot on failure; teardown
+  pages/BasePage           Waits, click and type helpers that verify their result
+  pages/LoginPage          Login screen
+  pages/InventoryPage      Product list: add/remove, sort, cart badge
+  pages/CartPage           Cart and checkout flow
+  tests/LoginTests         Valid and invalid login
+  tests/InventoryTests     Product count, cart badge, price sorting
+  tests/CheckoutTests      Cart contents and end-to-end purchase
 ```
 
-## 3. Following one test from start to finish
+## Anatomy of a test
 
-Take `endToEndCheckoutShowsConfirmation` in `CheckoutTests`.
+Following `CheckoutTests.endToEndCheckoutShowsConfirmation`:
 
-1. TestNG sees `@Test` and decides to run it.
-2. Before it runs, `BaseTest.setUp()` calls `DriverFactory.create()`, which opens a fresh Chrome.
-3. The test calls `new LoginPage(driver()).open().loginAs(...)`. That visits the site, types the username and password, clicks Login, and hands back an `InventoryPage`.
-4. `inventory.addToCart("sauce-labs-bolt-t-shirt")` finds the button by its `data-test` attribute and clicks it.
-5. `inventory.openCart()` clicks the cart icon and returns a `CartPage`.
-6. `cart.checkout(...)` fills in the form, clicks Continue and Finish.
-7. `assertTrue(...)` checks the page says "Thank you". If not, the test **fails**.
-8. After the test, `BaseTest.tearDown()` saves a screenshot if it failed, then closes Chrome.
+1. TestNG finds the `@Test` method.
+2. `BaseTest.setUp()` (`@BeforeMethod`) calls `DriverFactory.create()` and stores a fresh browser for the current thread.
+3. `new LoginPage(driver()).open().loginAs(...)` opens the site, logs in, and returns an `InventoryPage`.
+4. `addToCart(...)` clicks the product's button and confirms it changed to "Remove".
+5. `openCart()` navigates to the cart and returns a `CartPage`.
+6. `checkout(...)` fills the form, continues, and finishes.
+7. The test asserts the confirmation message.
+8. `BaseTest.tearDown()` (`@AfterMethod`) saves and attaches a screenshot if the test failed, then quits the browser.
 
-The test reads like a story. It never mentions a CSS selector, because those are hidden in the page objects.
+## Design decisions
 
-## 4. Why it's built this way
+- **Page Object Model.** Selectors live in one place per screen, so a UI change is a one-line fix instead of an edit to every test.
+- **Explicit waits only.** `BasePage` wraps `WebDriverWait`. There is no `Thread.sleep` and no implicit wait, so each step waits exactly as long as the page needs.
+- **Browser per test, held in a `ThreadLocal`.** Tests do not share state. The suite is parallel-capable, but CI runs it with `thread-count="1"` (see below).
+- **Actions verify their own result.** `clickUntil` and `type` in `BasePage` check that a click or keystroke took effect and retry if it did not.
+- **Data-driven tests.** Invalid-login cases run from a single TestNG `@DataProvider`.
+- **Groups.** Tests tagged `smoke` form a fast subset: `mvn test -Dgroups=smoke`.
+- **Configuration through system properties.** `-Dbrowser` and `-Dheadless` select the browser and mode.
 
-**Page objects.** If the site changes the login button, you fix one line in `LoginPage` instead of every test that logs in.
+## Reporting
 
-**Explicit waits.** Pages load at different speeds. Instead of sleeping for a fixed time (slow and unreliable), `BasePage` waits until the element is actually there, up to 10 seconds. This is the single biggest reason UI tests become "flaky" when done wrong.
+Allure's TestNG integration records every run. Page-object methods are annotated with `@Step`, so each test in the report shows its actions in order, grouped by feature (Login, Inventory, Checkout). Failed tests carry an attached screenshot. The AspectJ agent configured in `pom.xml` is what makes the `@Step` annotations visible to Allure.
 
-**ThreadLocal driver.** `testng.xml` runs three test classes at the same time. Each needs its own browser, or they'd click over each other. `ThreadLocal` gives every thread its own private copy.
+CI builds the report after every run, including failed ones, and publishes it to GitHub Pages from `main`.
 
-**DataProvider.** `invalidLoginShowsError` runs 4 times with 4 sets of inputs from one method, instead of 4 copy-pasted tests.
+## Stabilising the suite on CI
 
-**Groups.** Tests tagged `smoke` are the fast, most important ones: `mvn test -Dgroups=smoke`.
+The first CI run passed 9 of 12 tests. All three failures involved an action that the page silently ignored, typically right after the cart updated. Selenium reported no error in these cases. Progress came from reading the CI log and the failure screenshots uploaded with each run:
 
-**Headless.** Runs Chrome without a window, which is what CI needs. Use `-Dheadless=false` to watch.
-
-## 5. Java ideas you'll see (and can explain)
-
-- **Inheritance**: `LoginTests extends BaseTest` gets the browser setup for free. `LoginPage extends BasePage` gets waits and click helpers.
-- **Encapsulation**: selectors are `private static final`; only the page's methods are public.
-- **Method chaining**: `open()` returns `this`, so you can write `new LoginPage(d).open().loginAs(...)`.
-- **Annotations**: `@Test`, `@BeforeMethod`, `@AfterMethod`, `@DataProvider` tell TestNG what each method is for.
-- **Assertions**: `assertEquals(actual, expected)` is the actual check. No assertion means no test.
-- **Lambdas/streams**: `.stream().map(...).toList()` turns a list of page elements into a list of numbers or text.
-
-## 6. Run it and break it (the best way to learn)
-
-1. `mvn test -Dheadless=false` and watch the browser.
-2. Change `"secret_sauce"` in one test to a wrong password and confirm the test fails and a screenshot appears in `screenshots/`.
-3. Change a selector in `LoginPage` and see the error message you get.
-4. Add a new test: log in, add three items, assert the badge shows 3.
-5. Add a new page object, for example for the checkout overview page.
-
-## 7. Questions you may get in an interview
-
-- *Why page objects?* Maintenance: UI changes touch one class.
-- *Why not `Thread.sleep`?* Slow and unreliable; explicit waits are as fast as the page allows.
-- *How do you handle flaky tests?* Find the cause (usually timing or shared state), fix it with proper waits and isolated browsers; don't hide it with retries.
-- *How do tests run in CI?* GitHub Actions starts Ubuntu, installs Java 17, runs `mvn test` headless, uploads reports and screenshots.
-- *What would you add next?* Reporting (Allure), cross-browser runs on Selenium Grid, and API calls to set up test data faster.
-
-Describe this as a personal project you built to learn Selenium and TestNG, which is accurate.
-
-## 8. A real debugging story: actions the page silently drops
-
-The first CI run passed 9 of 12 tests. Getting to green took several rounds, each driven by evidence from CI (the log plus the failure screenshots uploaded as an artifact).
-
-| Round | What the evidence showed | What we changed | Result |
+| Round | Evidence | Change | Result |
 |---|---|---|---|
-| 1 | Clicks right after "Add to cart" did nothing; Selenium raised no error | Wait for the button to flip to "Remove" | Still failing |
-| 2 | Screenshots: healthy page, nothing covering it; the click was just lost | `clickUntil`: click, verify the effect, retry | Still failing |
-| 3 | Three browsers at once on a small CI machine | Run tests one at a time | 10 of 12 pass |
-| 4 | A few clicks still lost, even on retry | Retries use a JavaScript click as a fallback | 11 of 12 pass |
-| 5 | Screenshot: "First Name is required" with empty fields; typed text had vanished | `type` verifies the text landed; checkout retries fill + Continue together | Still 11 of 12 |
-| 6 | Screenshot: field focused but empty after 3 rapid retries, so retries were all inside the same bad moment | Spaced-out attempts; text must survive 750 ms; later attempts set the value via JavaScript | **12 of 12 pass** |
+| 1 | Clicks right after "Add to cart" had no effect | Wait for the button to change to "Remove" | Still failing |
+| 2 | Screenshots showed a healthy page with nothing covering it; the click was lost | `clickUntil`: click, verify the effect, retry | Still failing |
+| 3 | Three browsers ran at once on a small CI runner | Run tests one at a time | 10 of 12 pass |
+| 4 | A few clicks were still lost, even on retry | Retries fall back to a JavaScript click | 11 of 12 pass |
+| 5 | Screenshot showed "First Name is required" with empty fields; typed text had vanished | `type` verifies the text landed; checkout retries fill and submit together | 11 of 12 pass |
+| 6 | Field focused but empty after three rapid retries, which all landed in the same bad moment | Spaced-out attempts, the text must hold for 750 ms, later attempts set the value through JavaScript | 12 of 12 pass |
 
-**The pattern:** the site sometimes drops actions made while the page is redrawing, and Selenium cannot see that. So every step must **verify its result**, not just perform the action.
+The pattern is that the demo site sometimes drops input while it is redrawing, and the driver cannot see that. Every action therefore checks its outcome instead of assuming it succeeded.
 
-**Honest caveat:** I never confirmed *why* the site behaves this way. Retries and verification are a sound defence for a third-party UI you don't control. For your own application, you would find and fix the root cause instead of working around it.
+The root cause on the site's side was not established. Retrying and verifying is a reasonable defence against a third-party UI that cannot be changed; for an application under the team's control, the next step would be to find and fix the underlying behaviour.
 
-**Interview answer:** "A third-party demo site dropped clicks and keystrokes intermittently. I used the CI logs and failure screenshots to narrow it down, ran the suite serially, and made each page action verify its own result instead of assuming it worked."
+## Known limitations
+
+- Firefox is supported in `DriverFactory` but has not been run in CI.
+- Tests run serially on CI. Parallel runs caused dropped actions on the shared runner.
+- The retry and JavaScript-fallback logic is a workaround for the demo site's behaviour, not a general pattern to copy into every project.
+- The Allure report shows only the latest run; there is no history across runs.

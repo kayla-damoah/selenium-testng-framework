@@ -33,7 +33,7 @@ flowchart LR
 - **Page Object Model**: selectors and page behavior live in `pages/`, tests only describe intent.
 - **Explicit waits only**: `BasePage` wraps `WebDriverWait`; there is no `Thread.sleep`.
 - **Parallel-ready**: a `ThreadLocal<WebDriver>` gives each test its own browser. CI runs one at a time (`thread-count=1` in `testng.xml`) because parallel browsers on a small runner caused dropped clicks; raise it where there's more CPU.
-- **Actions verify their own result**: `clickUntil` and `type` in `BasePage` check that a click or keystroke took effect and retry, because the demo site occasionally drops them (see `docs/HOW_IT_WORKS.md`, section 8).
+- **Actions verify their own result**: `clickUntil` and `type` in `BasePage` check that a click or keystroke took effect and retry, because the demo site occasionally drops them (see "Stabilising the suite on CI" in `docs/HOW_IT_WORKS.md`).
 - **Data-driven tests**: TestNG `@DataProvider` for invalid-login cases.
 - **Allure report**: every run builds a clickable report (steps, grouping by feature, failure screenshots attached) published to GitHub Pages.
 - **Screenshot on failure**, uploaded as a CI artifact.
