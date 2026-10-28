@@ -1,5 +1,7 @@
 # Selenium + TestNG Test Framework
 
+[![selenium-tests](https://github.com/kayla-damoah/selenium-testng-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/kayla-damoah/selenium-testng-framework/actions/workflows/ci.yml)
+
 UI test automation in Java 17 with Selenium 4, TestNG and Maven, run in GitHub Actions on every push.
 
 Target: [Sauce Demo](https://www.saucedemo.com), a public practice shop.
