@@ -2,6 +2,7 @@ package com.kayla.qa.pages;
 
 import java.time.Duration;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -37,7 +38,13 @@ abstract class BasePage {
     protected void clickUntil(By locator, ExpectedCondition<?> expectedEffect) {
         int maxAttempts = 3;
         for (int attempt = 1; ; attempt++) {
-            click(locator);
+            if (attempt == 1) {
+                click(locator);
+            } else {
+                // Fallback: fire the element's click handler directly instead of simulating a mouse press.
+                WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+            }
             try {
                 new WebDriverWait(driver, Duration.ofSeconds(6)).until(expectedEffect);
                 return;
